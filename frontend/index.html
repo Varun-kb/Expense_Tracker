@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TaskFlow — Expense & Task Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:#f6f8fc;--surface:#ffffff;--surface2:#eef2f8;--border:#d8e0ec;
+    --accent:#7c5cfc;--accent2:#e85d75;--accent3:#2dd4bf;--accent4:#f59e0b;
+    --text:#0f172a;--text2:#64748b;--success:#22c55e;--danger:#ef4444;--warning:#f59e0b;
+    --radius:14px;--radius-sm:8px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+  h1,h2,h3,h4{font-family:'Syne',sans-serif}
+
+  /* ── AUTH ── */
+  #auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(ellipse 80% 60% at 50% 0%,#e6ecff,#f6f8fc)}
+  .auth-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;
+    padding:48px 40px;width:420px;max-width:95vw;box-shadow:0 40px 80px rgba(0,0,0,.5);
+    animation:slideUp .4s ease}
+  @keyframes slideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+  .auth-logo{display:flex;align-items:center;gap:10px;margin-bottom:28px}
+  .auth-logo-icon{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:18px}
+  .auth-logo h1{font-size:22px;font-weight:800}
+  .auth-tabs{display:flex;background:var(--bg);border-radius:8px;padding:4px;margin-bottom:24px}
+  .auth-tab{flex:1;padding:8px;text-align:center;cursor:pointer;border-radius:6px;font-weight:500;font-size:14px;color:var(--text2);transition:.2s}
+  .auth-tab.active{background:var(--surface2);color:var(--text)}
+
+  /* ── FORMS ── */
+  .form-group{margin-bottom:14px}
+  .form-group label{display:block;font-size:13px;color:var(--text2);margin-bottom:5px;font-weight:500}
+  .form-group input,.form-group select,.form-group textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .2s}
+  .form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--accent)}
+  .form-group select option{background:var(--surface)}
+  .form-group textarea{resize:vertical;min-height:75px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+  /* ── BUTTONS ── */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border-radius:8px;border:none;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:.2s;text-decoration:none}
+  .btn-primary{background:linear-gradient(135deg,var(--accent),#5a3fc0);color:#fff;width:100%}
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(124,92,252,.4)}
+  .btn-primary:disabled{opacity:.6;cursor:not-allowed;transform:none}
+  .btn-sm{padding:6px 12px;font-size:13px;width:auto}
+  .btn-ghost{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+  .btn-ghost:hover{color:var(--text)}
+  .btn-danger{background:rgba(239,68,68,.12);color:var(--danger);border:1px solid rgba(239,68,68,.25)}
+  .btn-danger:hover{background:rgba(239,68,68,.22)}
+
+  /* ── MESSAGES ── */
+  .error-msg{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--danger);padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px}
+  .info-msg{background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.3);color:var(--accent);padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px}
+
+  /* ── LAYOUT ── */
+  #app{display:flex;min-height:100vh}
+  .sidebar{width:240px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;height:100vh;z-index:10;transition:transform .3s}
+  .sidebar-logo{padding:22px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+  .sidebar-logo-icon{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:16px}
+  .sidebar-logo span{font-family:'Syne',sans-serif;font-weight:800;font-size:18px}
+  .sidebar-nav{padding:14px 12px;flex:1}
+  .nav-label{font-size:11px;color:var(--text2);font-weight:600;letter-spacing:.7px;text-transform:uppercase;padding:8px 8px 5px}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;margin-bottom:2px;color:var(--text2);font-size:14px;font-weight:500;transition:.15s}
+  .nav-item:hover{background:var(--surface2);color:var(--text)}
+  .nav-item.active{background:rgba(124,92,252,.15);color:var(--accent)}
+  .nav-icon{font-size:17px;width:20px;text-align:center}
+  .nav-badge{margin-left:auto;background:var(--accent);color:#fff;border-radius:10px;padding:2px 7px;font-size:11px;font-weight:700}
+  .sidebar-user{padding:14px;border-top:1px solid var(--border)}
+  .user-row{display:flex;align-items:center;gap:10px}
+  .user-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;flex-shrink:0}
+  .user-name{font-size:13px;font-weight:600}
+  .user-email{font-size:11px;color:var(--text2)}
+  .logout-btn{margin-left:auto;cursor:pointer;color:var(--text2);font-size:18px;transition:.2s;background:none;border:none}
+  .logout-btn:hover{color:var(--danger)}
+  .main{margin-left:240px;flex:1;padding:30px}
+  .page{display:none;animation:fadeIn .25s ease}
+  .page.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px;flex-wrap:wrap;gap:12px}
+  .page-title{font-size:26px;font-weight:800;letter-spacing:-.5px}
+  .page-sub{color:var(--text2);font-size:14px;margin-top:3px}
+
+  /* ── STATS ── */
+  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;position:relative;overflow:hidden;transition:transform .2s}
+  .stat-card:hover{transform:translateY(-2px)}
+  .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+  .stat-card.c1::before{background:var(--accent)} .stat-card.c2::before{background:var(--accent2)}
+  .stat-card.c3::before{background:var(--accent3)} .stat-card.c4::before{background:var(--accent4)}
+  .stat-label{font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+  .stat-value{font-family:'Syne',sans-serif;font-size:28px;font-weight:800}
+  .stat-sub{font-size:12px;color:var(--text2);margin-top:3px}
+  .stat-icon{position:absolute;top:14px;right:14px;font-size:26px;opacity:.12}
+
+  /* ── DASH GRID ── */
+  .dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .dash-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px}
+  .dash-card h3{font-size:15px;font-weight:700;margin-bottom:14px}
+  .recent-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+  .recent-item:last-child{border-bottom:none}
+  .rdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .recent-info{flex:1}
+  .recent-title{font-size:14px;font-weight:500}
+  .recent-date{font-size:12px;color:var(--text2)}
+  .recent-amt{font-size:14px;font-weight:600;color:var(--accent2)}
+  .rbadge{font-size:11px;padding:2px 7px;border-radius:20px}
+  .bp{background:rgba(245,158,11,.13);color:var(--warning)}
+  .bd{background:rgba(34,197,94,.13);color:var(--success)}
+  .bi{background:rgba(124,92,252,.13);color:var(--accent)}
+
+  /* ── FILTER BAR ── */
+  .filter-bar{display:flex;gap:7px;margin-bottom:18px;flex-wrap:wrap;align-items:center}
+  .search-bar{flex:1;min-width:180px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 13px;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;outline:none}
+  .search-bar:focus{border-color:var(--accent)}
+  .chip{padding:6px 13px;border-radius:20px;border:1px solid var(--border);font-size:13px;cursor:pointer;color:var(--text2);background:var(--surface);transition:.15s}
+  .chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+  /* ── TASKS ── */
+  .task-list{display:flex;flex-direction:column;gap:9px}
+  .task-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;display:flex;align-items:center;gap:13px;transition:.2s}
+  .task-card:hover{border-color:var(--accent);transform:translateX(2px)}
+  .t-check{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;transition:.2s}
+  .t-check.done{background:var(--success);border-color:var(--success);color:#fff}
+  .t-check.prog{background:var(--accent);border-color:var(--accent);color:#fff}
+  .t-info{flex:1}
+  .t-title{font-size:15px;font-weight:600}
+  .t-title.done{text-decoration:line-through;color:var(--text2)}
+  .t-desc{font-size:13px;color:var(--text2);margin-top:2px}
+  .t-meta{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+  .tag{font-size:11px;padding:2px 7px;border-radius:4px}
+  .t-actions{display:flex;gap:5px;opacity:0;transition:opacity .2s}
+  .task-card:hover .t-actions{opacity:1}
+
+  /* ── EXPENSES ── */
+  .exp-grid{display:grid;grid-template-columns:1fr 300px;gap:18px;align-items:start}
+  .exp-list{display:flex;flex-direction:column;gap:9px}
+  .exp-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;display:flex;align-items:center;gap:13px;transition:.2s}
+  .exp-card:hover{border-color:var(--accent2)}
+  .exp-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+  .exp-info{flex:1}
+  .exp-title{font-size:14px;font-weight:600}
+  .exp-meta{font-size:12px;color:var(--text2);margin-top:2px}
+  .exp-amount{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;color:var(--accent2)}
+  .exp-actions{display:flex;gap:5px;opacity:0;transition:opacity .2s}
+  .exp-card:hover .exp-actions{opacity:1}
+  .exp-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;position:sticky;top:20px}
+  .exp-panel h3{margin-bottom:18px;font-size:15px}
+  .bar-item{margin-bottom:10px}
+  .bar-label{display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px}
+  .bar-track{height:7px;background:var(--bg);border-radius:4px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:4px;transition:width .8s ease}
+
+  /* ── ANALYTICS ── */
+  .donut-wrap{position:relative;width:110px;height:110px;margin:0 auto 14px}
+  svg.donut{transform:rotate(-90deg)}
+  .donut-c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .donut-v{font-family:'Syne',sans-serif;font-size:20px;font-weight:800}
+  .donut-l{font-size:10px;color:var(--text2)}
+  .legend{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin-top:6px}
+  .legend span{font-size:12px}
+
+  /* ── MODAL ── */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:100;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+  .overlay.open{opacity:1;pointer-events:all}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:30px;width:460px;max-width:92vw;transform:scale(.95);transition:transform .2s;max-height:90vh;overflow-y:auto}
+  .overlay.open .modal{transform:scale(1)}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+  .modal-title{font-size:19px;font-weight:800}
+  .mclose{cursor:pointer;font-size:21px;color:var(--text2);background:none;border:none;line-height:1}
+  .mclose:hover{color:var(--text)}
+  .modal-foot{display:flex;gap:10px;margin-top:22px}
+  .modal-foot .btn{flex:1}
+
+  /* ── TOAST ── */
+  .toast{position:fixed;bottom:22px;right:22px;z-index:200;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px 18px;display:flex;align-items:center;gap:10px;box-shadow:0 20px 40px rgba(0,0,0,.4);font-size:14px;transform:translateX(130%);transition:transform .3s}
+  .toast.show{transform:translateX(0)}
+  .toast.success{border-left:3px solid var(--success)}
+  .toast.error{border-left:3px solid var(--danger)}
+  .toast.info{border-left:3px solid var(--accent)}
+
+  /* ── EMPTY ── */
+  .empty{text-align:center;padding:50px 20px;color:var(--text2)}
+  .empty-icon{font-size:44px;margin-bottom:14px;opacity:.4}
+  .empty h3{font-size:17px;color:var(--text);margin-bottom:7px}
+
+  /* ── LOADING ── */
+  .loading{display:flex;align-items:center;justify-content:center;padding:40px;color:var(--text2);gap:10px}
+  .spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ── API STATUS ── */
+  .api-status{position:fixed;top:14px;right:14px;z-index:50;font-size:12px;padding:5px 12px;border-radius:20px;font-weight:600}
+  .api-ok{background:rgba(34,197,94,.15);color:var(--success);border:1px solid rgba(34,197,94,.3)}
+  .api-err{background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.3)}
+
+  /* ── HAMBURGER ── */
+  .hamburger{display:none;cursor:pointer;font-size:21px;color:var(--text2);background:none;border:none}
+
+  ::-webkit-scrollbar{width:5px}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+  @media(max-width:900px){
+    .sidebar{transform:translateX(-100%)} .sidebar.open{transform:none}
+    .main{margin-left:0;padding:18px} .stats-grid{grid-template-columns:1fr 1fr}
+    .dash-grid{grid-template-columns:1fr} .exp-grid{grid-template-columns:1fr}
+    .hamburger{display:block}
+  }
+  @media(max-width:500px){.stats-grid{grid-template-columns:1fr 1fr}.auth-card{padding:28px 20px}}
+</style>
+</head>
+<body>
+
+<!-- ════════════════ API STATUS BADGE ════════════════ -->
+<div class="api-status api-err" id="api-status">⚪ Connecting…</div>
+
+<!-- ════════════════ AUTH ════════════════ -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">⚡</div>
+      <h1>TaskFlow</h1>
+    </div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchTab('login')">Sign In</div>
+      <div class="auth-tab" onclick="switchTab('register')">Register</div>
+    </div>
+    <div id="auth-err" class="error-msg" style="display:none"></div>
+    <div id="auth-info" class="info-msg" style="display:none"></div>
+
+    <!-- LOGIN -->
+    <div id="login-form">
+      <div class="form-group"><label>Email</label><input type="email" id="l-email" placeholder="you@email.com"/></div>
+      <div class="form-group"><label>Password</label><input type="password" id="l-pw" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+      <button class="btn btn-primary" id="login-btn" onclick="doLogin()" style="margin-top:8px">Sign In →</button>
+    </div>
+
+    <!-- REGISTER -->
+    <div id="register-form" style="display:none">
+      <div class="form-group"><label>Full Name</label><input type="text" id="r-name" placeholder="Your name"/></div>
+      <div class="form-group"><label>Email</label><input type="email" id="r-email" placeholder="you@email.com"/></div>
+      <div class="form-group"><label>Password (min 6 chars)</label><input type="password" id="r-pw" placeholder="••••••••"/></div>
+      <div class="form-group"><label>Confirm Password</label><input type="password" id="r-pw2" placeholder="••••••••" onkeydown="if(event.key==='Enter')doRegister()"/></div>
+      <button class="btn btn-primary" id="reg-btn" onclick="doRegister()" style="margin-top:8px">Create Account →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ MAIN APP ════════════════ -->
+<div id="app" style="display:none">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">⚡</div>
+      <span>TaskFlow</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-label">Overview</div>
+      <div class="nav-item active" onclick="showPage('dashboard',this)"><span class="nav-icon">🏠</span>Dashboard</div>
+      <div class="nav-label" style="margin-top:10px">Manage</div>
+      <div class="nav-item" onclick="showPage('tasks',this)"><span class="nav-icon">✅</span>Tasks<span class="nav-badge" id="pending-badge">0</span></div>
+      <div class="nav-item" onclick="showPage('expenses',this)"><span class="nav-icon">💰</span>Expenses</div>
+      <div class="nav-label" style="margin-top:10px">Reports</div>
+      <div class="nav-item" onclick="showPage('analytics',this)"><span class="nav-icon">📊</span>Analytics</div>
+    </nav>
+    <div class="sidebar-user">
+      <div class="user-row">
+        <div class="user-avatar" id="u-avatar">U</div>
+        <div><div class="user-name" id="u-name">User</div><div class="user-email" id="u-email">-</div></div>
+        <button class="logout-btn" onclick="doLogout()" title="Logout">⏻</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div><div class="page-title" id="greet">Good day! 👋</div><div class="page-sub">Here's your overview</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="hamburger" onclick="toggleSidebar()">☰</button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('task-modal')">+ Quick Task</button>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card c1"><div class="stat-label">Total Tasks</div><div class="stat-value" id="s-total">0</div><div class="stat-sub">All time</div><div class="stat-icon">📋</div></div>
+        <div class="stat-card c2"><div class="stat-label">Pending</div><div class="stat-value" id="s-pend">0</div><div class="stat-sub">Need action</div><div class="stat-icon">⏳</div></div>
+        <div class="stat-card c3"><div class="stat-label">Completed</div><div class="stat-value" id="s-done">0</div><div class="stat-sub">Great job!</div><div class="stat-icon">✅</div></div>
+        <div class="stat-card c4"><div class="stat-label">Monthly Spend</div><div class="stat-value" id="s-exp">₹0</div><div class="stat-sub">This month</div><div class="stat-icon">💸</div></div>
+      </div>
+      <div class="dash-grid">
+        <div class="dash-card"><h3>Recent Tasks</h3><div id="dash-tasks"></div></div>
+        <div class="dash-card"><h3>Recent Expenses</h3><div id="dash-exp"></div></div>
+      </div>
+    </div>
+
+    <!-- TASKS -->
+    <div class="page" id="page-tasks">
+      <div class="page-header">
+        <div><div class="page-title">Tasks</div><div class="page-sub">Manage your activities</div></div>
+        <div style="display:flex;gap:8px">
+          <button class="hamburger" onclick="toggleSidebar()">☰</button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('task-modal')">+ Add Task</button>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <input class="search-bar" id="t-search" placeholder="🔍 Search tasks…" oninput="renderTasks()"/>
+        <div class="chip active" onclick="setTF('all',this)">All</div>
+        <div class="chip" onclick="setTF('pending',this)">Pending</div>
+        <div class="chip" onclick="setTF('in-progress',this)">In Progress</div>
+        <div class="chip" onclick="setTF('done',this)">Done</div>
+      </div>
+      <div class="task-list" id="task-list"></div>
+    </div>
+
+    <!-- EXPENSES -->
+    <div class="page" id="page-expenses">
+      <div class="page-header">
+        <div><div class="page-title">Expenses</div><div class="page-sub">Track your spending</div></div>
+        <div style="display:flex;gap:8px">
+          <button class="hamburger" onclick="toggleSidebar()">☰</button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('exp-modal')">+ Add Expense</button>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <input class="search-bar" id="e-search" placeholder="🔍 Search expenses…" oninput="renderExpenses()"/>
+        <div class="chip active" onclick="setEF('all',this)">All</div>
+        <div class="chip" onclick="setEF('Food',this)">🍔 Food</div>
+        <div class="chip" onclick="setEF('Transport',this)">🚌 Transport</div>
+        <div class="chip" onclick="setEF('Shopping',this)">🛍️ Shopping</div>
+        <div class="chip" onclick="setEF('Health',this)">💊 Health</div>
+        <div class="chip" onclick="setEF('Education',this)">📚 Education</div>
+        <div class="chip" onclick="setEF('Bills',this)">🧾 Bills</div>
+      </div>
+      <div class="exp-grid">
+        <div class="exp-list" id="exp-list"></div>
+        <div class="exp-panel"><h3>💰 Summary</h3><div id="exp-summary"></div></div>
+      </div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div class="page" id="page-analytics">
+      <div class="page-header">
+        <div><div class="page-title">Analytics</div><div class="page-sub">Your insights</div></div>
+        <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      </div>
+      <div class="dash-grid">
+        <div class="dash-card"><h3>📊 Task Status</h3><div id="chart-tasks"></div></div>
+        <div class="dash-card"><h3>💸 Spending by Category</h3><div id="chart-exp"></div></div>
+      </div>
+      <div style="margin-top:18px"><div class="dash-card"><h3>📅 Monthly Breakdown</h3><div id="chart-monthly" style="margin-top:14px"></div></div></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ════════════════ TASK MODAL ════════════════ -->
+<div class="overlay" id="task-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="t-modal-title">Add Task</div>
+      <button class="mclose" onclick="closeModal('task-modal')">✕</button>
+    </div>
+    <input type="hidden" id="t-edit-id"/>
+    <div class="form-group"><label>Title *</label><input type="text" id="t-title" placeholder="What needs to be done?"/></div>
+    <div class="form-group"><label>Description</label><textarea id="t-desc" placeholder="Optional details…"></textarea></div>
+    <div class="grid2">
+      <div class="form-group"><label>Priority</label>
+        <select id="t-priority"><option value="low">🟢 Low</option><option value="medium" selected>🟡 Medium</option><option value="high">🔴 High</option></select>
+      </div>
+      <div class="form-group"><label>Status</label>
+        <select id="t-status"><option value="pending">⏳ Pending</option><option value="in-progress">🔵 In Progress</option><option value="done">✅ Done</option></select>
+      </div>
+    </div>
+    <div class="form-group"><label>Due Date</label><input type="date" id="t-due"/></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('task-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTask()">Save Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ EXPENSE MODAL ════════════════ -->
+<div class="overlay" id="exp-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="e-modal-title">Add Expense</div>
+      <button class="mclose" onclick="closeModal('exp-modal')">✕</button>
+    </div>
+    <input type="hidden" id="e-edit-id"/>
+    <div class="form-group"><label>Description *</label><input type="text" id="e-desc" placeholder="What did you spend on?"/></div>
+    <div class="grid2">
+      <div class="form-group"><label>Amount (₹) *</label><input type="number" id="e-amount" placeholder="0" min="0"/></div>
+      <div class="form-group"><label>Category</label>
+        <select id="e-cat">
+          <option value="Food">🍔 Food</option><option value="Transport">🚌 Transport</option>
+          <option value="Shopping">🛍️ Shopping</option><option value="Health">💊 Health</option>
+          <option value="Education">📚 Education</option><option value="Entertainment">🎮 Entertainment</option>
+          <option value="Bills">🧾 Bills</option><option value="Other">🏷️ Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label>Date *</label><input type="date" id="e-date"/></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('exp-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveExpense()">Save Expense</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><span id="t-icon">✅</span><span id="t-msg">Done!</span></div>
+
+<script>
+// ══════════════════════════════════════════════════
+//  CONFIG — Change this if your Flask runs on
+//  a different port
+// ══════════════════════════════════════════════════
+const API = "http://localhost:5000/api";
+
+// ══════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════
+let token   = localStorage.getItem("tf_token") || null;
+let user    = JSON.parse(localStorage.getItem("tf_user") || "null");
+let tasks   = [];
+let expenses = [];
+let taskFilter    = "all";
+let expenseFilter = "all";
+
+const CAT_ICONS  = {Food:"🍔",Transport:"🚌",Shopping:"🛍️",Health:"💊",Education:"📚",Entertainment:"🎮",Bills:"🧾",Other:"🏷️"};
+const CAT_COLORS = {Food:"#e85d75",Transport:"#7c5cfc",Shopping:"#f59e0b",Health:"#22c55e",Education:"#2dd4bf",Entertainment:"#6366f1",Bills:"#ef4444",Other:"#888"};
+
+// ══════════════════════════════════════════════════
+//  API HELPER — all fetch calls go through here
+// ══════════════════════════════════════════════════
+async function api(method, path, body) {
+  const opts = {
+    method,
+    headers: { "Content-Type": "application/json" }
+  };
+  // Attach token for protected routes
+  if (token) opts.headers["Authorization"] = "Bearer " + token;
+  if (body)  opts.body = JSON.stringify(body);
+
+  let res;
+  try {
+    res = await fetch(API + path, opts);
+  } catch {
+    throw new Error("Cannot reach backend. Ensure http://localhost:5000 is running.");
+  }
+
+  let data = {};
+  const ct = res.headers.get("content-type") || "";
+  if (ct.includes("application/json")) {
+    data = await res.json();
+  } else {
+    const text = await res.text();
+    data = text ? { error: text } : {};
+  }
+
+  if (!res.ok) {
+    const msg = data.error || `Request failed (${res.status})`;
+    const authFail = res.status === 401 && token && /(token|expired|invalid|unauthorized)/i.test(msg);
+    if (authFail) doLogout("Session expired. Please sign in again.");
+    throw new Error(msg);
+  }
+  return data;
+}
+
+// Check if backend is running
+async function checkBackend() {
+  try {
+    const r = await fetch("http://localhost:5000/");
+    if (r.ok) {
+      document.getElementById("api-status").className = "api-status api-ok";
+      document.getElementById("api-status").textContent = "🟢 Server Online";
+    }
+  } catch {
+    document.getElementById("api-status").className = "api-status api-err";
+    document.getElementById("api-status").textContent = "🔴 Server Offline — run: python app.py";
+  }
+}
+
+// ══════════════════════════════════════════════════
+//  AUTH
+// ══════════════════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll(".auth-tab").forEach((t,i)=>t.classList.toggle("active",(i===0&&tab==="login")||(i===1&&tab==="register")));
+  document.getElementById("login-form").style.display    = tab==="login"    ? "block" : "none";
+  document.getElementById("register-form").style.display = tab==="register" ? "block" : "none";
+  clearAuthMsg();
+}
+function showAuthErr(msg){ const e=document.getElementById("auth-err"); e.textContent=msg; e.style.display="block"; }
+function showAuthInfo(msg){ const e=document.getElementById("auth-info"); e.textContent=msg; e.style.display="block"; }
+function clearAuthMsg(){ document.getElementById("auth-err").style.display="none"; document.getElementById("auth-info").style.display="none"; }
+
+async function doLogin() {
+  clearAuthMsg();
+  const email = document.getElementById("l-email").value.trim();
+  const pw    = document.getElementById("l-pw").value;
+  if (!email || !pw) { showAuthErr("Please enter email and password."); return; }
+  const btn = document.getElementById("login-btn");
+  btn.disabled = true; btn.textContent = "Signing in…";
+  try {
+    const data = await api("POST", "/auth/login", { email, password: pw });
+    loginSuccess(data.token, data.user);
+  } catch(e) {
+    showAuthErr(e.message);
+  } finally { btn.disabled=false; btn.textContent="Sign In →"; }
+}
+
+async function doRegister() {
+  clearAuthMsg();
+  const name = document.getElementById("r-name").value.trim();
+  const email= document.getElementById("r-email").value.trim();
+  const pw   = document.getElementById("r-pw").value;
+  const pw2  = document.getElementById("r-pw2").value;
+  if (!name||!email||!pw) { showAuthErr("Please fill all fields."); return; }
+  if (pw !== pw2)          { showAuthErr("Passwords do not match."); return; }
+  const btn = document.getElementById("reg-btn");
+  btn.disabled=true; btn.textContent="Creating…";
+  try {
+    const data = await api("POST", "/auth/register", { name, email, password: pw });
+    loginSuccess(data.token, data.user);
+    toast("Account created! Welcome 🎉", "🎉", "success");
+  } catch(e) {
+    showAuthErr(e.message);
+  } finally { btn.disabled=false; btn.textContent="Create Account →"; }
+}
+
+function loginSuccess(tok, usr) {
+  token = tok; user = usr;
+  localStorage.setItem("tf_token", token);
+  localStorage.setItem("tf_user",  JSON.stringify(user));
+  initApp();
+}
+
+function doLogout(msg) {
+  const lastEmail = user?.email || "";
+  token=null; user=null; tasks=[]; expenses=[];
+  localStorage.removeItem("tf_token"); localStorage.removeItem("tf_user");
+  document.getElementById("auth-screen").style.display="flex";
+  document.getElementById("app").style.display="none";
+  switchTab("login");
+  if (lastEmail) document.getElementById("l-email").value = lastEmail;
+  document.getElementById("l-pw").value = "";
+  if (msg) showAuthInfo(msg);
+}
+
+// ══════════════════════════════════════════════════
+//  APP INIT
+// ══════════════════════════════════════════════════
+async function initApp() {
+  document.getElementById("auth-screen").style.display = "none";
+  document.getElementById("app").style.display = "flex";
+
+  // Greeting
+  const h=new Date().getHours(), name=user.name.split(" ")[0];
+  const g=h<12?"Good morning":h<17?"Good afternoon":"Good evening";
+  document.getElementById("greet").textContent = `${g}, ${name}! 👋`;
+
+  // User info in sidebar
+  document.getElementById("u-avatar").textContent = user.name[0].toUpperCase();
+  document.getElementById("u-name").textContent   = user.name;
+  document.getElementById("u-email").textContent  = user.email;
+
+  // Default dates in modals
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById("t-due").value  = today;
+  document.getElementById("e-date").value = today;
+
+  // Load data from backend
+  await loadAll();
+}
+
+async function loadAll() {
+  try {
+    const [t, e] = await Promise.all([
+      api("GET", "/tasks/"),
+      api("GET", "/expenses/")
+    ]);
+    tasks    = t;
+    expenses = e;
+    renderAll();
+  } catch(err) {
+    if (/token|expired|invalid|unauthorized/i.test(err.message || "")) return;
+    toast("Could not load data. Is the server running?", "⚠️", "error");
+  }
+}
+
+function renderAll() {
+  renderDashboard();
+  renderTasks();
+  renderExpenses();
+  updateBadge();
+}
+
+// ══════════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════════
+function showPage(page, el) {
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.getElementById("page-"+page).classList.add("active");
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+  if(el) el.classList.add("active");
+  if(page==="analytics") renderAnalytics();
+  document.getElementById("sidebar").classList.remove("open");
+}
+function toggleSidebar(){ document.getElementById("sidebar").classList.toggle("open"); }
+
+// ══════════════════════════════════════════════════
+//  DASHBOARD
+// ══════════════════════════════════════════════════
+function renderDashboard() {
+  const total  = tasks.length;
+  const pend   = tasks.filter(t=>t.status==="pending").length;
+  const done   = tasks.filter(t=>t.status==="done").length;
+  const thisM  = new Date().toISOString().slice(0,7);
+  const mTotal = expenses.filter(e=>e.date.startsWith(thisM)).reduce((s,e)=>s+e.amount,0);
+
+  document.getElementById("s-total").textContent = total;
+  document.getElementById("s-pend").textContent  = pend;
+  document.getElementById("s-done").textContent  = done;
+  document.getElementById("s-exp").textContent   = "₹"+mTotal.toLocaleString("en-IN");
+
+  // Recent tasks
+  const rt = [...tasks].sort((a,b)=>b.created>a.created?1:-1).slice(0,5);
+  document.getElementById("dash-tasks").innerHTML = rt.length
+    ? rt.map(t=>`<div class="recent-item">
+        <div class="rdot" style="background:${t.status==="done"?"var(--success)":t.status==="in-progress"?"var(--accent)":"var(--warning)"}"></div>
+        <div class="recent-info"><div class="recent-title">${esc(t.title)}</div><div class="recent-date">${t.due?"Due: "+t.due:"No due date"}</div></div>
+        <span class="rbadge ${t.status==="done"?"bd":t.status==="in-progress"?"bi":"bp"}">${t.status}</span>
+      </div>`).join("")
+    : `<div class="empty"><div class="empty-icon">📋</div><p>No tasks yet</p></div>`;
+
+  // Recent expenses
+  const re = [...expenses].sort((a,b)=>b.date>a.date?1:-1).slice(0,5);
+  document.getElementById("dash-exp").innerHTML = re.length
+    ? re.map(e=>`<div class="recent-item">
+        <div class="rdot" style="background:var(--accent2)"></div>
+        <div class="recent-info"><div class="recent-title">${esc(e.desc)}</div><div class="recent-date">${e.category} • ${e.date}</div></div>
+        <span class="recent-amt">₹${e.amount.toLocaleString("en-IN")}</span>
+      </div>`).join("")
+    : `<div class="empty"><div class="empty-icon">💰</div><p>No expenses yet</p></div>`;
+}
+
+// ══════════════════════════════════════════════════
+//  TASKS
+// ══════════════════════════════════════════════════
+function setTF(f,el){ taskFilter=f; document.querySelectorAll("#page-tasks .chip").forEach(c=>c.classList.remove("active")); el.classList.add("active"); renderTasks(); }
+
+function renderTasks() {
+  const q=(document.getElementById("t-search")?.value||"").toLowerCase();
+  let list=tasks.filter(t=>{
+    const mf=taskFilter==="all"||t.status===taskFilter;
+    const ms=!q||t.title.toLowerCase().includes(q)||(t.desc||"").toLowerCase().includes(q);
+    return mf&&ms;
+  }).sort((a,b)=>({high:0,medium:1,low:2}[a.priority]-{high:0,medium:1,low:2}[b.priority])||b.created.localeCompare(a.created));
+
+  const el=document.getElementById("task-list");
+  if(!list.length){el.innerHTML=`<div class="empty"><div class="empty-icon">✅</div><h3>No tasks found</h3><p>Add one above!</p></div>`;return;}
+  el.innerHTML=list.map(t=>`
+    <div class="task-card">
+      <div class="t-check ${t.status==="done"?"done":t.status==="in-progress"?"prog":""}" onclick="cycleStatus('${t.id}')">${t.status==="done"?"✓":t.status==="in-progress"?"⟳":""}</div>
+      <div class="t-info">
+        <div class="t-title ${t.status==="done"?"done":""}">${esc(t.title)}</div>
+        ${t.desc?`<div class="t-desc">${esc(t.desc)}</div>`:""}
+        <div class="t-meta">
+          <span class="tag" style="background:${priC(t.priority)};color:#fff">${t.priority}</span>
+          <span class="tag" style="background:var(--surface2);color:var(--text2)">${t.status}</span>
+          ${t.due?`<span class="tag" style="background:var(--surface2);color:var(--text2)">📅 ${t.due}</span>`:""}
+        </div>
+      </div>
+      <div class="t-actions">
+        <button class="btn btn-ghost btn-sm" onclick="editTask('${t.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteTask('${t.id}')">🗑️</button>
+      </div>
+    </div>`).join("");
+}
+function priC(p){return p==="high"?"var(--danger)":p==="medium"?"var(--warning)":"var(--success)";}
+
+async function cycleStatus(id) {
+  const t=tasks.find(x=>x.id===id); if(!t)return;
+  const next={pending:"in-progress","in-progress":"done",done:"pending"};
+  try {
+    await api("PUT","/tasks/"+id,{status:next[t.status]});
+    t.status=next[t.status]; renderTasks(); updateBadge(); renderDashboard();
+    toast("Status updated!","✅","success");
+  } catch(e){ toast(e.message,"⚠️","error"); }
+}
+
+async function deleteTask(id) {
+  if(!confirm("Delete this task?"))return;
+  try {
+    await api("DELETE","/tasks/"+id);
+    tasks=tasks.filter(t=>t.id!==id); renderTasks(); updateBadge(); renderDashboard();
+    toast("Task deleted","🗑️","info");
+  } catch(e){ toast(e.message,"⚠️","error"); }
+}
+
+function editTask(id) {
+  const t=tasks.find(x=>x.id===id); if(!t)return;
+  document.getElementById("t-edit-id").value  = id;
+  document.getElementById("t-title").value    = t.title;
+  document.getElementById("t-desc").value     = t.desc||"";
+  document.getElementById("t-priority").value = t.priority;
+  document.getElementById("t-status").value   = t.status;
+  document.getElementById("t-due").value      = t.due||"";
+  document.getElementById("t-modal-title").textContent = "Edit Task";
+  openModal("task-modal");
+}
+
+async function saveTask() {
+  const title=document.getElementById("t-title").value.trim();
+  if(!title){toast("Title is required","⚠️","error");return;}
+  const id=document.getElementById("t-edit-id").value;
+  const body={title,desc:document.getElementById("t-desc").value.trim(),priority:document.getElementById("t-priority").value,status:document.getElementById("t-status").value,due:document.getElementById("t-due").value};
+  try {
+    if(id) {
+      await api("PUT","/tasks/"+id,body);
+      const idx=tasks.findIndex(t=>t.id===id); if(idx!==-1)tasks[idx]={...tasks[idx],...body};
+      toast("Task updated!","✅","success");
+    } else {
+      const data=await api("POST","/tasks/",body);
+      tasks.unshift(data.task);
+      toast("Task added!","✅","success");
+    }
+    closeModal("task-modal"); resetTaskForm(); renderTasks(); updateBadge(); renderDashboard();
+  } catch(e){ toast(e.message,"⚠️","error"); }
+}
+
+function resetTaskForm(){
+  document.getElementById("t-edit-id").value=""; document.getElementById("t-title").value="";
+  document.getElementById("t-desc").value=""; document.getElementById("t-priority").value="medium";
+  document.getElementById("t-status").value="pending"; document.getElementById("t-due").value=new Date().toISOString().slice(0,10);
+  document.getElementById("t-modal-title").textContent="Add Task";
+}
+function updateBadge(){ document.getElementById("pending-badge").textContent=tasks.filter(t=>t.status==="pending").length; }
+
+// ══════════════════════════════════════════════════
+//  EXPENSES
+// ══════════════════════════════════════════════════
+function setEF(f,el){ expenseFilter=f; document.querySelectorAll("#page-expenses .chip").forEach(c=>c.classList.remove("active")); el.classList.add("active"); renderExpenses(); }
+
+function renderExpenses() {
+  const q=(document.getElementById("e-search")?.value||"").toLowerCase();
+  let list=expenses.filter(e=>{
+    const mf=expenseFilter==="all"||e.category===expenseFilter;
+    const ms=!q||e.desc.toLowerCase().includes(q)||e.category.toLowerCase().includes(q);
+    return mf&&ms;
+  }).sort((a,b)=>b.date.localeCompare(a.date));
+
+  const el=document.getElementById("exp-list");
+  if(!list.length){el.innerHTML=`<div class="empty"><div class="empty-icon">💰</div><h3>No expenses found</h3><p>Add one above!</p></div>`;}
+  else el.innerHTML=list.map(e=>`
+    <div class="exp-card">
+      <div class="exp-icon" style="background:${CAT_COLORS[e.category]||"#555"}22">${CAT_ICONS[e.category]||"🏷️"}</div>
+      <div class="exp-info"><div class="exp-title">${esc(e.desc || e.description)}</div><div class="exp-meta">${e.category} • ${e.date}</div></div>
+      <div class="exp-amount">₹${e.amount.toLocaleString("en-IN")}</div>
+      <div class="exp-actions">
+        <button class="btn btn-ghost btn-sm" onclick="editExpense('${e.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteExpense('${e.id}')">🗑️</button>
+      </div>
+    </div>`).join("");
+
+  // Summary panel
+  const total=expenses.reduce((s,e)=>s+e.amount,0);
+  const thisM=new Date().toISOString().slice(0,7);
+  const mTotal=expenses.filter(e=>e.date.startsWith(thisM)).reduce((s,e)=>s+e.amount,0);
+  const cats={};expenses.forEach(e=>{cats[e.category]=(cats[e.category]||0)+e.amount;});
+  const sorted=Object.entries(cats).sort((a,b)=>b[1]-a[1]);
+  document.getElementById("exp-summary").innerHTML=`
+    <div style="margin-bottom:14px"><div class="stat-label" style="margin-bottom:3px">This Month</div>
+      <div style="font-family:Syne,sans-serif;font-size:26px;font-weight:800;color:var(--accent2)">₹${mTotal.toLocaleString("en-IN")}</div></div>
+    <div style="margin-bottom:14px"><div class="stat-label" style="margin-bottom:3px">All Time</div>
+      <div style="font-family:Syne,sans-serif;font-size:18px;font-weight:700">₹${total.toLocaleString("en-IN")}</div></div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:14px 0"/>
+    <div class="stat-label" style="margin-bottom:10px">By Category</div>
+    ${sorted.map(([cat,amt])=>`<div class="bar-item">
+      <div class="bar-label"><span>${CAT_ICONS[cat]||"🏷️"} ${cat}</span><span>₹${amt.toLocaleString("en-IN")}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${total?Math.round(amt/total*100):0}%;background:${CAT_COLORS[cat]||"#888"}"></div></div>
+    </div>`).join("")}`;
+}
+
+function editExpense(id) {
+  const e=expenses.find(x=>x.id===id); if(!e)return;
+  document.getElementById("e-edit-id").value = id;
+  document.getElementById("e-desc").value    = e.desc;
+  document.getElementById("e-amount").value  = e.amount;
+  document.getElementById("e-cat").value     = e.category;
+  document.getElementById("e-date").value    = e.date;
+  document.getElementById("e-modal-title").textContent = "Edit Expense";
+  openModal("exp-modal");
+}
+
+async function deleteExpense(id) {
+  if(!confirm("Delete this expense?"))return;
+  try {
+    await api("DELETE","/expenses/"+id);
+    expenses=expenses.filter(e=>e.id!==id); renderExpenses(); renderDashboard();
+    toast("Expense deleted","🗑️","info");
+  } catch(e){ toast(e.message,"⚠️","error"); }
+}
+
+async function saveExpense() {
+  const desc=document.getElementById("e-desc").value.trim();
+  const amount=parseFloat(document.getElementById("e-amount").value);
+  if(!desc){toast("Description required","⚠️","error");return;}
+  if(!amount||amount<=0){toast("Valid amount required","⚠️","error");return;}
+  const id=document.getElementById("e-edit-id").value;
+  const body={
+  description: desc,
+  amount: amount,
+  category: document.getElementById("e-cat").value,
+  date: document.getElementById("e-date").value || new Date().toISOString().slice(0,10)
+};
+  try {
+    if(id) {
+      await api("PUT","/expenses/"+id,body);
+      const idx=expenses.findIndex(e=>e.id===id); if(idx!==-1)expenses[idx]={...expenses[idx],...body};
+      toast("Expense updated!","✅","success");
+    } else {
+      const data=await api("POST","/expenses/",body);
+      expenses.unshift(data.expense);
+      toast("Expense added!","✅","success");
+    }
+    closeModal("exp-modal"); resetExpenseForm(); renderExpenses(); renderDashboard();
+  } catch(e){ toast(e.message,"⚠️","error"); }
+}
+
+function resetExpenseForm(){
+  document.getElementById("e-edit-id").value=""; document.getElementById("e-desc").value="";
+  document.getElementById("e-amount").value=""; document.getElementById("e-cat").value="Food";
+  document.getElementById("e-date").value=new Date().toISOString().slice(0,10);
+  document.getElementById("e-modal-title").textContent="Add Expense";
+}
+
+// ══════════════════════════════════════════════════
+//  ANALYTICS
+// ══════════════════════════════════════════════════
+function renderAnalytics() {
+  const total=tasks.length, done=tasks.filter(t=>t.status==="done").length,
+        prog=tasks.filter(t=>t.status==="in-progress").length, pend=tasks.filter(t=>t.status==="pending").length;
+  const pct=total?Math.round(done/total*100):0;
+  const r=44,circ=2*Math.PI*r;
+
+  document.getElementById("chart-tasks").innerHTML=`
+    <div class="donut-wrap">
+      <svg class="donut" width="110" height="110" viewBox="0 0 110 110">
+        <circle cx="55" cy="55" r="${r}" fill="none" stroke="var(--border)" stroke-width="11"/>
+        <circle cx="55" cy="55" r="${r}" fill="none" stroke="var(--success)" stroke-width="11"
+          stroke-dasharray="${total?done/total*circ:0} ${circ}" stroke-linecap="round"/>
+        <circle cx="55" cy="55" r="${r}" fill="none" stroke="var(--accent)" stroke-width="11"
+          stroke-dasharray="${total?prog/total*circ:0} ${circ}" stroke-dashoffset="${total?-done/total*circ:0}" stroke-linecap="round"/>
+      </svg>
+      <div class="donut-c"><div class="donut-v">${pct}%</div><div class="donut-l">Done</div></div>
+    </div>
+    <div class="legend">
+      <span style="color:var(--success)">● Done: ${done}</span>
+      <span style="color:var(--accent)">● In Progress: ${prog}</span>
+      <span style="color:var(--warning)">● Pending: ${pend}</span>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:16px 0"/>
+    ${["high","medium","low"].map(p=>`<div class="bar-item">
+      <div class="bar-label"><span>${p==="high"?"🔴":p==="medium"?"🟡":"🟢"} ${p} priority</span><span>${tasks.filter(t=>t.priority===p).length}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${total?tasks.filter(t=>t.priority===p).length/total*100:0}%;background:${priC(p)}"></div></div>
+    </div>`).join("")}`;
+
+  const totE=expenses.reduce((s,e)=>s+e.amount,0);
+  const cats={};expenses.forEach(e=>{cats[e.category]=(cats[e.category]||0)+e.amount;});
+  const sc=Object.entries(cats).sort((a,b)=>b[1]-a[1]);
+  let off=0;
+  const slices=sc.map(([cat,amt])=>{const p=totE?amt/totE:0,d=p*circ,s=`<circle cx="55" cy="55" r="${r}" fill="none" stroke="${CAT_COLORS[cat]||"#888"}" stroke-width="11" stroke-dasharray="${d} ${circ}" stroke-dashoffset="${-off*circ}" stroke-linecap="round"/>`;off+=p;return s;}).join("");
+  document.getElementById("chart-exp").innerHTML=`
+    <div class="donut-wrap">
+      <svg class="donut" width="110" height="110" viewBox="0 0 110 110">
+        <circle cx="55" cy="55" r="${r}" fill="none" stroke="var(--border)" stroke-width="11"/>${slices}
+      </svg>
+      <div class="donut-c"><div class="donut-v" style="font-size:15px">₹${totE>999?(totE/1000).toFixed(1)+"k":totE}</div><div class="donut-l">Total</div></div>
+    </div>
+    <div class="legend">${sc.slice(0,4).map(([c])=>`<span style="color:${CAT_COLORS[c]||"#888"}">● ${c}</span>`).join("")}</div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:16px 0"/>
+    ${sc.map(([cat,amt])=>`<div class="bar-item">
+      <div class="bar-label"><span>${CAT_ICONS[cat]||"🏷️"} ${cat}</span><span>₹${amt.toLocaleString("en-IN")}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${totE?Math.round(amt/totE*100):0}%;background:${CAT_COLORS[cat]||"#888"}"></div></div>
+    </div>`).join("")}`;
+
+  const months={};expenses.forEach(e=>{const m=e.date.slice(0,7);months[m]=(months[m]||0)+e.amount;});
+  const ml=Object.entries(months).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,6);
+  const mx=Math.max(...ml.map(([,v])=>v),1);
+  document.getElementById("chart-monthly").innerHTML=ml.length
+    ? ml.map(([m,v])=>`<div class="bar-item">
+        <div class="bar-label"><span>📅 ${m}</span><span>₹${v.toLocaleString("en-IN")}</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(v/mx*100)}%;background:var(--accent)"></div></div>
+      </div>`).join("")
+    : "<p style='color:var(--text2);font-size:14px'>No data yet.</p>";
+}
+
+// ══════════════════════════════════════════════════
+//  MODAL & TOAST UTILS
+// ══════════════════════════════════════════════════
+function openModal(id){ document.getElementById(id).classList.add("open"); }
+function closeModal(id){
+  document.getElementById(id).classList.remove("open");
+  if(id==="task-modal") resetTaskForm();
+  if(id==="exp-modal")  resetExpenseForm();
+}
+document.querySelectorAll(".overlay").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)closeModal(m.id);}));
+
+let _toastT;
+function toast(msg,icon="✅",type="success"){
+  const el=document.getElementById("toast");
+  document.getElementById("t-icon").textContent=icon;
+  document.getElementById("t-msg").textContent=msg;
+  el.className=`toast ${type} show`;
+  clearTimeout(_toastT); _toastT=setTimeout(()=>el.classList.remove("show"),3200);
+}
+function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+
+// ══════════════════════════════════════════════════
+//  STARTUP
+// ══════════════════════════════════════════════════
+checkBackend();
+setInterval(checkBackend, 10000);  // check every 10 seconds
+
+if(token && user) {
+  initApp();
+}
+</script>
+</body>
+</html>
